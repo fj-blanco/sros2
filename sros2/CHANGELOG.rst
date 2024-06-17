@@ -2,6 +2,15 @@
 Changelog for package sros2
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* [FIX] remove dangerous mutable default arguments in generate_artifacts (`#318 <https://github.com/ros2/sros2/issues/318>`_)
+* Fix sros2 tests on Windows Debug. (`#317 <https://github.com/ros2/sros2/issues/317>`_)
+* [TESTS] Update tests and add test for generate_artifacts (`#311 <https://github.com/ros2/sros2/issues/311>`_)
+* remove deprecated create_key and list_keys verbs (`#302 <https://github.com/ros2/sros2/issues/302>`_)
+* Fix linux tutorial: cloning example policies and set of default policies for a node (`#295 <https://github.com/ros2/sros2/issues/295>`_)
+* Contributors: Chris Lalancette, Mikael Arguedas
+
 0.14.0 (2024-04-29)
 -------------------
 
