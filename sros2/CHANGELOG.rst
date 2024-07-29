@@ -2,6 +2,12 @@
 Changelog for package sros2
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Give more time to generate policies in tests (`#323 <https://github.com/ros2/sros2/issues/323>`_)
+* Switch to context manager for rclpy tests. (`#322 <https://github.com/ros2/sros2/issues/322>`_)
+* Contributors: Alejandro Hernández Cordero, Chris Lalancette
+
 0.15.0 (2024-06-17)
 -------------------
 * [FIX] remove dangerous mutable default arguments in generate_artifacts (`#318 <https://github.com/ros2/sros2/issues/318>`_)
