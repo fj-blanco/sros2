@@ -2,8 +2,8 @@
 Changelog for package sros2
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.15.1 (2024-07-29)
+-------------------
 * Give more time to generate policies in tests (`#323 <https://github.com/ros2/sros2/issues/323>`_)
 * Switch to context manager for rclpy tests. (`#322 <https://github.com/ros2/sros2/issues/322>`_)
 * Contributors: Alejandro Hernández Cordero, Chris Lalancette
