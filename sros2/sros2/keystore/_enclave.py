@@ -32,7 +32,7 @@ from sros2.policy import get_policy_default
 from . import _keystore, _permission
 
 
-def create_enclave(keystore_path: pathlib.Path, identity: str) -> None:
+def create_enclave(keystore_path: pathlib.Path, identity: str, pq_algorithm: str = 'default') -> None:
     if not _keystore.is_valid_keystore(keystore_path):
         raise sros2.errors.InvalidKeystoreError(keystore_path)
 
@@ -75,7 +75,8 @@ def create_enclave(keystore_path: pathlib.Path, identity: str) -> None:
             keystore_identity_ca_key_path,
             identity,
             cert_path,
-            key_path
+            key_path,
+            pq_algorithm=pq_algorithm
         )
 
     # create a wildcard permissions file for this node which can be overridden
@@ -97,7 +98,8 @@ def create_enclave(keystore_path: pathlib.Path, identity: str) -> None:
         keystore_permissions_ca_cert_path,
         keystore_permissions_ca_key_path,
         permissions_path,
-        signed_permissions_path
+        signed_permissions_path,
+        pq_algorithm=pq_algorithm
     )
 
 
@@ -132,7 +134,8 @@ def _create_key_and_cert(
         keystore_ca_key_path: pathlib.Path,
         identity: str,
         cert_path: pathlib.Path,
-        key_path: pathlib.Path):
+        key_path: pathlib.Path,
+        pq_algorithm: str = 'default'):
     # Load the CA cert and key from disk
     ca_cert = _utilities.load_cert(keystore_ca_cert_path)
 
@@ -142,7 +145,8 @@ def _create_key_and_cert(
     cert, private_key = _utilities.build_key_and_cert(
         x509.Name([x509.NameAttribute(x509.oid.NameOID.COMMON_NAME, identity)]),
         issuer_name=ca_cert.subject,
-        ca_key=ca_key)
+        ca_key=ca_key,
+        pq_algorithm=pq_algorithm)
 
     _utilities.write_key(private_key, key_path)
     _utilities.write_cert(cert, cert_path)

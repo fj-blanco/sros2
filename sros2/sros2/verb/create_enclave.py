@@ -28,10 +28,16 @@ class CreateEnclaveVerb(VerbExtension):
         arg = parser.add_argument('ROOT', type=pathlib.Path, help='root path of keystore')
         arg.completer = DirectoriesCompleter()
         parser.add_argument('NAME', help='enclave name')
+        parser.add_argument(
+            '--pq-algorithm',
+            choices=['default', 'dilithium2', 'dilithium3', 'dilithium5', 'falcon512', 'falcon1024'], # TODO: check available algorithms
+            default='default',
+            help='Post-quantum signature algorithm to use (default: default, which uses traditional crypto)'
+        )
 
     def main(self, *, args) -> int:
         try:
-            sros2.keystore.create_enclave(args.ROOT, args.NAME)
+            sros2.keystore.create_enclave(args.ROOT, args.NAME, pq_algorithm=args.pq_algorithm)
         except sros2.errors.SROS2Error as e:
             print(f'Unable to create enclave: {str(e)}', file=sys.stderr)
             return 1

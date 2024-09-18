@@ -24,7 +24,8 @@ from . import _policy
 def generate_artifacts(
     keystore_path: Optional[pathlib.Path],
     identity_names: List[str],
-    policy_files: List[pathlib.Path]
+    policy_files: List[pathlib.Path],
+    pq_algorithm: str = 'default'
 ) -> None:
     if keystore_path is None:
         keystore_path = _utilities.get_keystore_path_from_env()
@@ -32,11 +33,11 @@ def generate_artifacts(
             return
     if not keystore.is_valid_keystore(keystore_path):
         print('%s is not a valid keystore, creating new keystore' % keystore_path)
-        keystore.create_keystore(keystore_path)
+        keystore.create_keystore(keystore_path, pq_algorithm=pq_algorithm)
 
     # Create enclaves for all provided identities
     for identity in identity_names:
-        keystore.create_enclave(keystore_path, identity)
+        keystore.create_enclave(keystore_path, identity, pq_algorithm=pq_algorithm)
     for policy_file in policy_files:
         # FIXME load_policy should raise something else
         # than RuntimeError and it should be caught here
@@ -45,7 +46,7 @@ def generate_artifacts(
         for enclave in enclaves_element:
             identity_name = enclave.get('path')
             if identity_name not in identity_names:
-                keystore.create_enclave(keystore_path, identity_name)
+                keystore.create_enclave(keystore_path, identity_name, pq_algorithm=pq_algorithm)
             policy_element = _policy.get_policy_from_tree(identity_name, policy_tree)
             keystore._permission.create_permissions_from_policy_element(
-                keystore_path, identity_name, policy_element)
+                keystore_path, identity_name, policy_element, pq_algorithm=pq_algorithm)

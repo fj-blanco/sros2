@@ -38,15 +38,17 @@ _RMW_WITH_ROS_GRAPH_INFO_TOPIC = (
 def create_permission(
         keystore_path: pathlib.Path,
         identity: str,
-        policy_file_path: pathlib.Path) -> None:
+        policy_file_path: pathlib.Path,
+        pq_algorithm: str = 'default') -> None:
     policy_element = _policy.get_policy(identity, policy_file_path)
-    create_permissions_from_policy_element(keystore_path, identity, policy_element)
+    create_permissions_from_policy_element(keystore_path, identity, policy_element, pq_algorithm=pq_algorithm)
 
 
 def create_permissions_from_policy_element(
         keystore_path: pathlib.Path,
         identity: str,
-        policy_element: etree.Element) -> None:
+        policy_element: etree.Element,
+        pq_algorithm: str = 'default') -> None:
     relative_path = os.path.normpath(identity.lstrip('/'))
     key_dir = _keystore.get_keystore_enclaves_dir(keystore_path).joinpath(relative_path)
     permissions_path = key_dir.joinpath('permissions.xml')
@@ -61,7 +63,8 @@ def create_permissions_from_policy_element(
         keystore_permissions_ca_cert_path,
         keystore_permissions_ca_key_path,
         permissions_path,
-        signed_permissions_path
+        signed_permissions_path,
+        pq_algorithm=pq_algorithm
     )
 
 

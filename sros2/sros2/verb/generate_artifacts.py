@@ -38,11 +38,17 @@ class GenerateArtifactsVerb(VerbExtension):
             help='list of policy xml file paths')
         arg.completer = FilesCompleter(
             allowednames=('xml'), directories=False)
+        parser.add_argument(
+            '--pq-algorithm',
+            choices=['default', 'dilithium2', 'dilithium3', 'dilithium5', 'falcon512', 'falcon1024'], # TODO: check available algorithms
+            default='default',
+            help='Post-quantum signature algorithm to use (default: default, which uses traditional crypto)'
+        )
 
     def main(self, *, args) -> int:
         try:
             _artifact_generation.generate_artifacts(
-                args.keystore_root_path, args.enclaves, args.policy_files)
+                args.keystore_root_path, args.enclaves, args.policy_files, pq_algorithm=args.pq_algorithm)
         except sros2.errors.SROS2Error as e:
             print(f'Unable to generate artifacts: {str(e)}', file=sys.stderr)
             return 1

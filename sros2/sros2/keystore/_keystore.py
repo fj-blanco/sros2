@@ -29,8 +29,7 @@ _KS_PUBLIC = 'public'
 _KS_PRIVATE = 'private'
 _DEFAULT_COMMON_NAME = 'sros2CA'
 
-
-def create_keystore(keystore_path: pathlib.Path) -> None:
+def create_keystore(keystore_path: pathlib.Path, pq_algorithm: str = 'default') -> None:
     if is_valid_keystore(keystore_path):
         raise sros2.errors.KeystoreExistsError(keystore_path)
 
@@ -83,7 +82,9 @@ def create_keystore(keystore_path: pathlib.Path) -> None:
             keystore_permissions_ca_cert_path,
             keystore_permissions_ca_key_path,
             gov_path,
-            signed_gov_path)
+            signed_gov_path,
+            pq_algorithm=pq_algorithm
+        )
 
 
 def is_valid_keystore(path: pathlib.Path) -> bool:

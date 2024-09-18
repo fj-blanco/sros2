@@ -13,12 +13,15 @@
 # limitations under the License.
 
 macro(sros2_generate_artifacts)
-  # sros2_generate_artifacts(ENCLAVES <enclave_1> <enclave_1>...<enclave_1>)
+  # sros2_generate_artifacts(ENCLAVES <enclave_1> <enclave_2>...<enclave_n> [PQ_ALGORITHM <pq_algorithm>])
   #
   # ENCLAVES (macro multi-arg) takes the enclave names for which artifacts will be generated
+  # PQ_ALGORITHM (optional) specifies the post-quantum algorithm to use
+  #   Options: DEFAULT, dilithium2, dilithium3, dilithium5, falcon512, falcon1024
+  #   If not specified or set to DEFAULT, traditional cryptography will be used
   # SECURITY (cmake arg) if not defined or OFF, will not generate keystore/keys/permissions
-  # POLICY_FILE (cmake arg) if defined, policies defined in the file will used to generate
-  #   permission files for all the enclaves listed in the policy file.
+  # POLICY_FILE (cmake arg) if defined, policies defined in the file will be used to generate
+  #   permission files for all the enclaves listed in the policy file
   # ROS_SECURITY_KEYSTORE (env variable) will be the location of the keystore
   if(NOT SECURITY)
     message(STATUS "Not generating security files")
@@ -31,7 +34,7 @@ macro(sros2_generate_artifacts)
   else()
     set(SECURITY_KEYSTORE ${DEFAULT_KEYSTORE})
   endif()
-  cmake_parse_arguments(ros2_generate_security_artifacts "" "" "ENCLAVES" ${ARGN})
+  cmake_parse_arguments(ros2_generate_security_artifacts "" "PQ_ALGORITHM" "ENCLAVES" ${ARGN})
   set(generate_artifacts_command ${PROGRAM} security generate_artifacts -k ${SECURITY_KEYSTORE})
   list(LENGTH ros2_generate_security_artifacts_ENCLAVES nb_enclaves)
   if(${nb_enclaves} GREATER "0")
@@ -48,6 +51,9 @@ macro(sros2_generate_artifacts)
       message(WARNING "policy file '${POLICY_FILE}' doesn't exist, skipping..")
     endif()
   endif()
+  if(DEFINED ros2_generate_security_artifacts_PQ_ALGORITHM)
+    list(APPEND generate_artifacts_command --pq-algorithm ${ros2_generate_security_artifacts_PQ_ALGORITHM})
+  endif()
 
   message(STATUS "Executing: ${generate_artifacts_command}")
   execute_process(
@@ -58,7 +64,7 @@ macro(sros2_generate_artifacts)
   if(NOT ${GENERATE_ARTIFACTS_RESULT} EQUAL 0)
     message(WARNING "Failed to generate security artifacts: ${GENERATE_ARTIFACTS_ERROR}")
   else()
-    message(STATUS "artifacts generated successfully")
+    message(STATUS "Artifacts generated successfully")
   endif()
 endmacro()
 

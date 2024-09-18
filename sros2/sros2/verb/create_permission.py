@@ -33,10 +33,16 @@ class CreatePermissionVerb(VerbExtension):
             'POLICY_FILE_PATH', type=pathlib.Path, help='path of the policy xml file')
         arg.completer = FilesCompleter(
             allowednames=('xml'), directories=False)
+        parser.add_argument(
+            '--pq-algorithm',
+            choices=['default', 'dilithium2', 'dilithium3', 'dilithium5', 'falcon512', 'falcon1024'], # TODO: check available algorithms
+            default='default',
+            help='Post-quantum signature algorithm to use (default: default, which uses traditional crypto)'
+        )
 
     def main(self, *, args) -> int:
         try:
-            sros2.keystore.create_permission(args.ROOT, args.NAME, args.POLICY_FILE_PATH)
+            sros2.keystore.create_permission(args.ROOT, args.NAME, args.POLICY_FILE_PATH, pq_algorithm=args.pq_algorithm)
         except sros2.errors.SROS2Error as e:
             print(f'Unable to create permission: {str(e)}', file=sys.stderr)
             return 1
