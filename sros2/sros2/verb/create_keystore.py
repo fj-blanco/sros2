@@ -17,6 +17,7 @@ import sys
 
 from argcomplete.completers import DirectoriesCompleter
 
+from sros2 import _utilities
 import sros2.errors
 import sros2.keystore
 from sros2.verb import VerbExtension
@@ -28,10 +29,15 @@ class CreateKeystoreVerb(VerbExtension):
     def add_arguments(self, parser, cli_name) -> None:
         arg = parser.add_argument('ROOT', type=pathlib.Path, help='root path of keystore')
         arg.completer = DirectoriesCompleter()
+        parser.add_argument(
+            '--identity-algorithm',
+            choices=('EC', *_utilities.PQ_IDENTITY_ALGORITHMS),
+            default='EC',
+            help='identity certificate algorithm (default: EC)')
 
     def main(self, *, args) -> int:
         try:
-            sros2.keystore.create_keystore(args.ROOT)
+            sros2.keystore.create_keystore(args.ROOT, args.identity_algorithm)
         except sros2.errors.SROS2Error as e:
             print(f'Unable to create keystore: {e}', file=sys.stderr)
             return 1

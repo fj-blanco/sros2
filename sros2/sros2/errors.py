@@ -25,6 +25,10 @@ class KeystoreError(SROS2Error):
     """Base class for keystore-related exceptions."""
 
 
+class CryptoError(KeystoreError):
+    """Exception raised when an external cryptographic operation fails."""
+
+
 class InvalidKeystoreError(KeystoreError):
     """Exception raised when the keystore is invalid."""
 

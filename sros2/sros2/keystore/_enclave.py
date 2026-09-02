@@ -131,6 +131,18 @@ def _create_key_and_cert(
         identity: str,
         cert_path: pathlib.Path,
         key_path: pathlib.Path):
+    identity_algorithm = _keystore.get_identity_algorithm(
+        keystore_ca_key_path.parents[1])
+    if identity_algorithm != _keystore._CLASSICAL_IDENTITY_ALGORITHM:
+        _utilities.build_pq_identity_certificate(
+            identity,
+            identity_algorithm,
+            keystore_ca_key_path,
+            keystore_ca_cert_path,
+            key_path,
+            cert_path)
+        return
+
     # Load the CA cert and key from disk
     ca_cert = _utilities.load_cert(keystore_ca_cert_path)
 

@@ -28,9 +28,14 @@ _KS_ENCLAVES = 'enclaves'
 _KS_PUBLIC = 'public'
 _KS_PRIVATE = 'private'
 _DEFAULT_COMMON_NAME = 'sros2CA'
+_IDENTITY_ALGORITHM_FILE = 'identity_algorithm'
+_CLASSICAL_IDENTITY_ALGORITHM = 'EC'
 
 
-def create_keystore(keystore_path: pathlib.Path) -> None:
+def create_keystore(
+    keystore_path: pathlib.Path,
+    identity_algorithm: str = _CLASSICAL_IDENTITY_ALGORITHM,
+) -> None:
     if is_valid_keystore(keystore_path):
         raise sros2.errors.KeystoreExistsError(keystore_path)
 
@@ -64,12 +69,24 @@ def create_keystore(keystore_path: pathlib.Path) -> None:
     # Create new CA if one doesn't already exist
     if not all(x.is_file() for x in required_files):
         _create_ca_key_cert(keystore_ca_key_path, keystore_ca_cert_path)
+        _utilities.create_symlink(
+            src=pathlib.Path('ca.cert.pem'), dst=keystore_permissions_ca_cert_path)
+        _utilities.create_symlink(
+            src=pathlib.Path('ca.key.pem'), dst=keystore_permissions_ca_key_path)
 
-        for path in (keystore_permissions_ca_cert_path, keystore_identity_ca_cert_path):
-            _utilities.create_symlink(src=pathlib.Path('ca.cert.pem'), dst=path)
-
-        for path in (keystore_permissions_ca_key_path, keystore_identity_ca_key_path):
-            _utilities.create_symlink(src=pathlib.Path('ca.key.pem'), dst=path)
+        if identity_algorithm == _CLASSICAL_IDENTITY_ALGORITHM:
+            _utilities.create_symlink(
+                src=pathlib.Path('ca.cert.pem'), dst=keystore_identity_ca_cert_path)
+            _utilities.create_symlink(
+                src=pathlib.Path('ca.key.pem'), dst=keystore_identity_ca_key_path)
+        else:
+            _utilities.build_pq_identity_ca(
+                _DEFAULT_COMMON_NAME,
+                identity_algorithm,
+                keystore_identity_ca_key_path,
+                keystore_identity_ca_cert_path)
+            keystore_path.joinpath(_KS_PRIVATE, _IDENTITY_ALGORITHM_FILE).write_text(
+                f'{identity_algorithm}\n', encoding='utf-8')
 
     # Create governance file if it doesn't already exist
     gov_path = keystore_path.joinpath(_KS_ENCLAVES, 'governance.xml')
@@ -106,6 +123,14 @@ def get_keystore_public_dir(keystore_path: pathlib.Path) -> pathlib.Path:
 
 def get_keystore_private_dir(keystore_path: pathlib.Path) -> pathlib.Path:
     return keystore_path.joinpath(_KS_PRIVATE)
+
+
+def get_identity_algorithm(keystore_path: pathlib.Path) -> str:
+    algorithm_path = get_keystore_private_dir(keystore_path).joinpath(
+        _IDENTITY_ALGORITHM_FILE)
+    if not algorithm_path.is_file():
+        return _CLASSICAL_IDENTITY_ALGORITHM
+    return algorithm_path.read_text(encoding='utf-8').strip()
 
 
 def _create_ca_key_cert(ca_key_out_path: pathlib.Path, ca_cert_out_path: pathlib.Path):

@@ -18,6 +18,8 @@ import os
 import pathlib
 import platform
 import shutil
+import subprocess
+import tempfile
 
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes
@@ -28,6 +30,9 @@ import sros2.errors
 
 _DOMAIN_ID_ENV = 'ROS_DOMAIN_ID'
 _KEYSTORE_DIR_ENV = 'ROS_SECURITY_KEYSTORE'
+_OPENSSL_ENV = 'SROS2_OPENSSL'
+
+PQ_IDENTITY_ALGORITHMS = ('ML-DSA-44', 'ML-DSA-65', 'ML-DSA-87')
 
 
 def create_symlink(*, src: pathlib.Path, dst: pathlib.Path):
@@ -115,6 +120,84 @@ def build_key_and_cert(subject_name, *, ca=False, ca_key=None, issuer_name=''):
     cert = builder.sign(ca_key, hashes.SHA256())
 
     return (cert, private_key)
+
+
+def build_pq_identity_ca(
+    subject_name: str,
+    algorithm: str,
+    key_path: pathlib.Path,
+    cert_path: pathlib.Path,
+) -> None:
+    """Create a native OpenSSL ML-DSA CA key and self-signed certificate."""
+    _validate_pq_identity_algorithm(algorithm)
+    _run_openssl([
+        'req', '-new', '-x509', '-newkey', algorithm, '-noenc',
+        '-keyout', str(key_path), '-out', str(cert_path), '-days', '3650',
+        '-subj', _openssl_subject(subject_name),
+        '-addext', 'basicConstraints=critical,CA:true,pathlen:1',
+        '-addext', 'keyUsage=critical,keyCertSign,cRLSign',
+    ])
+
+
+def build_pq_identity_certificate(
+    subject_name: str,
+    algorithm: str,
+    ca_key_path: pathlib.Path,
+    ca_cert_path: pathlib.Path,
+    key_path: pathlib.Path,
+    cert_path: pathlib.Path,
+) -> None:
+    """Create an ML-DSA identity certificate signed by an ML-DSA CA."""
+    _validate_pq_identity_algorithm(algorithm)
+    with tempfile.TemporaryDirectory(prefix='sros2-pq-') as temporary_dir:
+        csr_path = pathlib.Path(temporary_dir).joinpath('identity.csr.pem')
+        extensions_path = pathlib.Path(temporary_dir).joinpath('identity.ext')
+        extensions_path.write_text(
+            'basicConstraints=critical,CA:false\n'
+            'keyUsage=critical,digitalSignature\n',
+            encoding='utf-8')
+        _run_openssl([
+            'req', '-new', '-newkey', algorithm, '-noenc',
+            '-keyout', str(key_path), '-out', str(csr_path),
+            '-subj', _openssl_subject(subject_name),
+        ])
+        _run_openssl([
+            'x509', '-req', '-in', str(csr_path),
+            '-CA', str(ca_cert_path), '-CAkey', str(ca_key_path),
+            '-set_serial', f'0x{x509.random_serial_number():x}',
+            '-days', '3650', '-extfile', str(extensions_path),
+            '-out', str(cert_path),
+        ])
+    _run_openssl([
+        'verify', '-CAfile', str(ca_cert_path), str(cert_path),
+    ])
+
+
+def _validate_pq_identity_algorithm(algorithm: str) -> None:
+    if algorithm not in PQ_IDENTITY_ALGORITHMS:
+        choices = ', '.join(PQ_IDENTITY_ALGORITHMS)
+        raise sros2.errors.CryptoError(
+            f"unsupported PQ identity algorithm '{algorithm}'; choose one of: {choices}")
+
+
+def _openssl_subject(common_name: str) -> str:
+    escaped_name = common_name.replace('\\', '\\\\').replace('/', '\\/')
+    return f'/CN={escaped_name}'
+
+
+def _run_openssl(arguments: list[str]) -> None:
+    executable = os.getenv(_OPENSSL_ENV, 'openssl')
+    try:
+        subprocess.run(
+            [executable, *arguments],
+            check=True,
+            capture_output=True,
+            text=True)
+    except (OSError, subprocess.CalledProcessError) as error:
+        detail = getattr(error, 'stderr', '') or str(error)
+        raise sros2.errors.CryptoError(
+            f"OpenSSL command failed ({executable} {' '.join(arguments[:2])}): "
+            f'{detail.strip()}') from error
 
 
 def write_key(

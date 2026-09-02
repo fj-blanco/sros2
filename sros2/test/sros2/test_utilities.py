@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import pathlib
+import subprocess
 
 import pytest
 
@@ -32,3 +33,35 @@ def test_get_keystore_path_from_env_error(monkeypatch):
         _utilities.get_keystore_path_from_env()
 
     assert e.value.variable_name == _utilities._KEYSTORE_DIR_ENV
+
+
+def test_openssl_subject_escapes_enclave_path():
+    assert _utilities._openssl_subject('/demo/talker') == r'/CN=\/demo\/talker'
+
+
+def _supports_mldsa44():
+    result = subprocess.run(
+        ['openssl', 'list', '-signature-algorithms'],
+        capture_output=True,
+        text=True)
+    return result.returncode == 0 and 'ML-DSA-44' in result.stdout
+
+
+@pytest.mark.skipif(not _supports_mldsa44(), reason='OpenSSL lacks ML-DSA-44')
+def test_build_pq_identity_certificate(tmp_path):
+    ca_key = tmp_path / 'ca.key.pem'
+    ca_cert = tmp_path / 'ca.cert.pem'
+    key = tmp_path / 'node.key.pem'
+    cert = tmp_path / 'node.cert.pem'
+
+    _utilities.build_pq_identity_ca(
+        'sros2CA', 'ML-DSA-44', ca_key, ca_cert)
+    _utilities.build_pq_identity_certificate(
+        '/demo/talker', 'ML-DSA-44', ca_key, ca_cert, key, cert)
+
+    result = subprocess.run(
+        ['openssl', 'verify', '-CAfile', str(ca_cert), str(cert)],
+        check=True,
+        capture_output=True,
+        text=True)
+    assert result.stdout.rstrip().endswith(': OK')
